@@ -1,0 +1,49 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binaries and cache
+*.test
+*.test.exe
+*.testlog
+_testmain.*
+
+# Output of `go test -cover`
+*.out
+*.coverprofile
+
+# Build output
+/bin/
+/build/
+/dist/
+
+# Go workspace (go.work) ve Go module cache
+go.work
+go.work.sum
+
+# Dependency directories (remove the comment if vendoring)
+vendor/
+
+# IDE ve editör dosyaları
+.idea/
+.vscode/
+*.iml
+*.sublime-project
+*.sublime-workspace
+
+# OS tarafından oluşturulan gereksiz dosyalar
+.DS_Store
+Thumbs.db
+
+# Log dosyaları
+*.log
+
+# Coverage tool cache
+.coverage
+
+# Misc
+.env          # Eğer .env dosyası kullanıyorsan
+*.swp         # Vim swap dosyaları
