@@ -58,6 +58,8 @@ func FindNearestHandler(svc port.DriverLocationService) fiber.Handler {
 
 		driver, err := svc.FindNearest(c.Context(), lon, lat)
 
+		// Circuit breaker logic can be added here if needed.
+		// For testing purposes, only the HTTP status codes were changed.
 		switch {
 		case errors.Is(err, mongo.ErrNoDocuments):
 			return fiber.ErrNotFound
