@@ -1,0 +1,105 @@
+{
+	"info": {
+		"_postman_id": "a64acc6f-034c-46a1-8046-4d9af71d1c22",
+		"name": "Driver Location API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "46525873",
+		"_collection_link": "https://enver-1106699.postman.co/workspace/enver's-Workspace~195b8440-0f01-436c-8159-284748782d1b/collection/46525873-a64acc6f-034c-46a1-8046-4d9af71d1c22?action=share&source=collection_link&creator=46525873"
+	},
+	"item": [
+		{
+			"name": "Create Driver Location",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"driver_id\": 1,\n  \"location\": { \"type\": \"Point\", \"coordinates\": [29.0390297, 40.94289771] }\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/drivers/",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"drivers",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Import Driver Locations (CSV)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "multipart/form-data"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "file",
+							"type": "file",
+							"src": "<path-to-your-csv-file>"
+						}
+					]
+				},
+				"url": {
+					"raw": "{{baseUrl}}/drivers/import",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"drivers",
+						"import"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Find Nearest Driver",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/drivers/nearest?lon=29.0390297&lat=40.94289771",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"drivers",
+						"nearest"
+					],
+					"query": [
+						{
+							"key": "lon",
+							"value": "29.0390297"
+						},
+						{
+							"key": "lat",
+							"value": "40.94289771"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3000"
+		}
+	]
+}
