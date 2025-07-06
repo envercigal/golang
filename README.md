@@ -1,4 +1,4 @@
-# Project Name
+# Golang example
 
 ## 🧾 Overview
 
