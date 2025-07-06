@@ -5,26 +5,28 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"github.com/envercigal/golang/internal/core/domain"
+	"github.com/envercigal/golang/internal/core/port"
+	circuitbreaker "github.com/envercigal/golang/pkg"
 	"io"
 	"log"
 	"strconv"
 	"sync"
 	"time"
-
-	"golang-case/internal/core/domain"
-	"golang-case/internal/core/port"
 )
 
 type driverLocationService struct {
 	repo       port.DriverLocationRepository
+	breaker    *circuitbreaker.Breaker
 	batchSize  int
 	maxWorkers int
 }
 
-func NewDriverLocationService(r port.DriverLocationRepository) port.DriverLocationService {
+func NewDriverLocationService(r port.DriverLocationRepository, breaker *circuitbreaker.Breaker) port.DriverLocationService {
 	return &driverLocationService{
 		repo:       r,
-		batchSize:  10000,
+		breaker:    breaker,
+		batchSize:  1000,
 		maxWorkers: 100,
 	}
 }
@@ -73,7 +75,22 @@ func (s *driverLocationService) BulkCreate(ctx context.Context, reader io.Reader
 }
 
 func (s *driverLocationService) FindNearest(ctx context.Context, lon, lat float64) (*domain.DriverLocation, error) {
-	return s.repo.FindNearest(ctx, lon, lat)
+	var result *domain.DriverLocation
+
+	err := s.breaker.Execute(func() error {
+		dl, err := s.repo.FindNearest(ctx, lon, lat)
+		if err != nil {
+			return err
+		}
+		result = dl
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 func (s *driverLocationService) startWorker(ctx context.Context, wg *sync.WaitGroup, jobs <-chan []*domain.DriverLocation) {

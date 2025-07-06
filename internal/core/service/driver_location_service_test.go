@@ -3,11 +3,12 @@ package service
 import (
 	"context"
 	"errors"
+	"github.com/envercigal/golang/internal/core/domain"
+	circuitbreaker "github.com/envercigal/golang/pkg"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"golang-case/internal/core/domain"
 )
 
 // mockRepo implements port.DriverLocationRepository
@@ -33,10 +34,11 @@ func TestCreate_ValidCoordinates(t *testing.T) {
 	now := time.Now().UTC()
 	input := &domain.DriverLocation{
 		DriverID: 123,
-		Location: domain.GeoJSONPoint{"Point", []float64{29.0, 41.0}},
+		Location: domain.GeoJSONPoint{Type: "Point", Coordinates: []float64{29.0, 41.0}},
 	}
 
 	called := false
+
 	repo := &mockRepo{
 		createFn: func(ctx context.Context, dl *domain.DriverLocation) (*domain.DriverLocation, error) {
 			called = true
@@ -45,7 +47,7 @@ func TestCreate_ValidCoordinates(t *testing.T) {
 			return dl, nil
 		},
 	}
-	svc := NewDriverLocationService(repo)
+	svc := NewDriverLocationService(repo, circuitbreaker.New(5, 1))
 	created, err := svc.Create(context.Background(), input)
 	assert.NoError(t, err)
 	assert.True(t, called)
@@ -55,9 +57,9 @@ func TestCreate_ValidCoordinates(t *testing.T) {
 func TestCreate_InvalidLat(t *testing.T) {
 	input := &domain.DriverLocation{
 		DriverID: 1,
-		Location: domain.GeoJSONPoint{"Point", []float64{29.0, 200.0}},
+		Location: domain.GeoJSONPoint{Type: "Point", Coordinates: []float64{29.0, 200.0}},
 	}
-	svc := NewDriverLocationService(&mockRepo{})
+	svc := NewDriverLocationService(&mockRepo{}, circuitbreaker.New(5, 1))
 	_, err := svc.Create(context.Background(), input)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "latitude out of range")
@@ -70,7 +72,7 @@ func TestFindNearest_Success(t *testing.T) {
 			return expected, nil
 		},
 	}
-	svc := NewDriverLocationService(repo)
+	svc := NewDriverLocationService(repo, circuitbreaker.New(5, 1))
 	got, err := svc.FindNearest(context.Background(), 29, 41)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, got)
@@ -82,7 +84,7 @@ func TestFindNearest_NotFound(t *testing.T) {
 			return nil, errors.New("no documents")
 		},
 	}
-	svc := NewDriverLocationService(repo)
+	svc := NewDriverLocationService(repo, circuitbreaker.New(5, 1))
 	got, err := svc.FindNearest(context.Background(), 29, 41)
 	assert.Error(t, err)
 	assert.Nil(t, got)

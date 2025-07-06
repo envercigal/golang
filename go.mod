@@ -1,4 +1,4 @@
-module golang-case
+module github.com/envercigal/golang
 
 go 1.24.4
 

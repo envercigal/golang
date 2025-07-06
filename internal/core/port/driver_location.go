@@ -2,7 +2,7 @@ package port
 
 import (
 	"context"
-	"golang-case/internal/core/domain"
+	"github.com/envercigal/golang/internal/core/domain"
 	"io"
 )
 

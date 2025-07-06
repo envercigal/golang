@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"github.com/envercigal/golang/internal/core/domain"
+	"github.com/envercigal/golang/internal/core/port"
+	circuitbreaker "github.com/envercigal/golang/pkg"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -13,16 +16,13 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
-
-	"golang-case/internal/core/domain"
-	"golang-case/internal/core/port"
 )
 
 // fake svc
 type fakeService struct {
-	createFn      func(ctx context.Context, dl *domain.DriverLocation) (*domain.DriverLocation, error)
-	bulkCreateFn  func(ctx context.Context, r io.Reader) error
-	findNearestFn func(ctx context.Context, lon, lat float64) (*domain.DriverLocation, error)
+	createFn      func(ctx context.Context, dl *domain.DriverLocation) (*domain.DriverLocation, error) `json:"create_fn,omitempty"`
+	bulkCreateFn  func(ctx context.Context, r io.Reader) error                                         `json:"bulk_create_fn,omitempty"`
+	findNearestFn func(ctx context.Context, lon, lat float64) (*domain.DriverLocation, error)          `json:"find_nearest_fn,omitempty"`
 }
 
 func (f *fakeService) Create(ctx context.Context, dl *domain.DriverLocation) (*domain.DriverLocation, error) {
@@ -94,7 +94,7 @@ func TestImportHandler(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+token)
 	resp, err := app.Test(req)
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusAccepted, resp.StatusCode)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.True(t, done)
 }
 
@@ -118,4 +118,36 @@ func TestFindNearestHandler(t *testing.T) {
 	resp, err := app.Test(req)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
+func TestFindNearestHandler_Open(t *testing.T) {
+	svc := &fakeService{
+		findNearestFn: func(ctx context.Context, lon, lat float64) (*domain.DriverLocation, error) {
+			return nil, circuitbreaker.ErrOpen
+		},
+	}
+	app := setupApp(svc)
+
+	req := httptest.NewRequest("GET", "/drivers/nearest?lon=29&lat=41", nil)
+	token := makeTestToken()
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, _ := app.Test(req, -1)
+	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
+}
+
+func TestFindNearestHandler_HalfOpen(t *testing.T) {
+	svc := &fakeService{
+		findNearestFn: func(ctx context.Context, lon, lat float64) (*domain.DriverLocation, error) {
+			return nil, circuitbreaker.ErrHalfOpen
+		},
+	}
+	app := setupApp(svc)
+
+	req := httptest.NewRequest("GET", "/drivers/nearest?lon=29&lat=41", nil)
+	token := makeTestToken()
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, _ := app.Test(req, -1)
+	assert.Equal(t, http.StatusTooManyRequests, resp.StatusCode)
 }

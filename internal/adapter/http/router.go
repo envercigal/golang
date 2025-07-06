@@ -1,9 +1,9 @@
 package http
 
 import (
+	"github.com/envercigal/golang/internal/adapter/middleware"
+	"github.com/envercigal/golang/internal/core/port"
 	"github.com/gofiber/fiber/v2"
-	"golang-case/internal/adapter/middleware"
-	"golang-case/internal/core/port"
 )
 
 func RegisterDriverRoutes(app *fiber.App, svc port.DriverLocationService) {

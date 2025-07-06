@@ -3,10 +3,12 @@ package http
 import (
 	"context"
 	"errors"
+	"github.com/envercigal/golang/internal/core/domain"
+	"github.com/envercigal/golang/internal/core/port"
+	circuitbreaker "github.com/envercigal/golang/pkg"
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/mongo"
-	"golang-case/internal/core/domain"
-	"golang-case/internal/core/port"
+	"net/http"
 	"strconv"
 )
 
@@ -55,13 +57,18 @@ func FindNearestHandler(svc port.DriverLocationService) fiber.Handler {
 		}
 
 		driver, err := svc.FindNearest(c.Context(), lon, lat)
-		if err != nil {
-			if errors.Is(err, mongo.ErrNoDocuments) {
-				return fiber.ErrNotFound
-			}
-			return fiber.ErrInternalServerError
-		}
 
-		return c.JSON(driver)
+		switch {
+		case errors.Is(err, mongo.ErrNoDocuments):
+			return fiber.ErrNotFound
+		case errors.Is(err, circuitbreaker.ErrOpen):
+			return fiber.ErrServiceUnavailable
+		case errors.Is(err, circuitbreaker.ErrHalfOpen):
+			return fiber.ErrTooManyRequests
+		case err != nil:
+			return fiber.ErrInternalServerError
+		default:
+			return c.Status(http.StatusOK).JSON(driver)
+		}
 	}
 }

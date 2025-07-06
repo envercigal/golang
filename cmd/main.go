@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
-	"golang-case/internal/adapter/http"
+	"github.com/envercigal/golang/internal/adapter/http"
+	repo "github.com/envercigal/golang/internal/adapter/repository"
+	"github.com/envercigal/golang/internal/core/service"
+	circuitbreaker "github.com/envercigal/golang/pkg"
 	"log"
 	"os"
 	"time"
@@ -10,9 +13,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	mg "go.mongodb.org/mongo-driver/mongo" // Resmi sürücüye mg alias’ı
 	"go.mongodb.org/mongo-driver/mongo/options"
-
-	repo "golang-case/internal/adapter/repository" // Senin adapter paketine repo alias’ı
-	"golang-case/internal/core/service"
 )
 
 func main() {
@@ -32,7 +32,8 @@ func main() {
 	}
 
 	repository := repo.NewDriverLocationRepo(client.Database("mydb"))
-	svc := service.NewDriverLocationService(repository)
+	circuitBreaker := circuitbreaker.New(5, 1)
+	svc := service.NewDriverLocationService(repository, circuitBreaker)
 
 	http.RegisterDriverRoutes(app, svc)
 

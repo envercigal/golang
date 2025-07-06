@@ -3,14 +3,15 @@ package mongo
 import (
 	"context"
 	"errors"
+	"github.com/envercigal/golang/internal/core/domain"
+	"github.com/envercigal/golang/internal/core/port"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"golang-case/internal/core/port"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-
-	"golang-case/internal/core/domain"
 )
 
 type driverLocationRepo struct {
@@ -47,16 +48,27 @@ func (r *driverLocationRepo) Create(ctx context.Context, dl *domain.DriverLocati
 	return dl, nil
 }
 
-func (r *driverLocationRepo) BulkCreate(ctx context.Context, dls []*domain.DriverLocation) error {
-	models := make([]mongo.WriteModel, 0, len(dls))
-	for _, dl := range dls {
-		models = append(models, mongo.NewReplaceOneModel().
-			SetFilter(bson.M{"driver_id": dl.DriverID}).
-			SetReplacement(dl).
-			SetUpsert(true))
+func (r *driverLocationRepo) BulkCreate(ctx context.Context, batch []*domain.DriverLocation) error {
+	docs := make([]interface{}, len(batch))
+	for i, dl := range batch {
+		docs[i] = dl
 	}
-	opts := options.BulkWrite().SetOrdered(false)
-	_, err := r.coll.BulkWrite(ctx, models, opts)
+
+	wc := writeconcern.New(writeconcern.W(0))
+	collWithWC, err := r.coll.Clone(options.Collection().SetWriteConcern(wc))
+	if err != nil {
+		return err
+	}
+	cctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	_, err = collWithWC.InsertMany(
+		cctx,
+		docs,
+		options.InsertMany().
+			SetOrdered(false).
+			SetBypassDocumentValidation(true),
+	)
 	return err
 }
 
