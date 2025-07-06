@@ -5,11 +5,8 @@ import (
 	"errors"
 	"github.com/envercigal/golang/internal/core/domain"
 	"github.com/envercigal/golang/internal/core/port"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"time"
-
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -54,20 +51,13 @@ func (r *driverLocationRepo) BulkCreate(ctx context.Context, batch []*domain.Dri
 		docs[i] = dl
 	}
 
-	wc := writeconcern.New(writeconcern.W(0))
-	collWithWC, err := r.coll.Clone(options.Collection().SetWriteConcern(wc))
-	if err != nil {
-		return err
-	}
-	cctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
-	_, err = collWithWC.InsertMany(
-		cctx,
+	// Synchronized, acknowledged insert
+	_, err := r.coll.InsertMany(
+		ctx,
 		docs,
 		options.InsertMany().
-			SetOrdered(false).
-			SetBypassDocumentValidation(true),
+			SetOrdered(false).                 // hata olsa bile devam et
+			SetBypassDocumentValidation(true), // validasyon maliyetini atla
 	)
 	return err
 }
